@@ -163,9 +163,11 @@ docker-compose up -d
 
 ### Testing with Dummy Tables
 
-OpenAthena can be tested without an OpenS3 instance using dummy tables:
+OpenAthena can be tested without an OpenS3 instance using dummy tables. This approach allows development and testing of OpenAthena without requiring an actual OpenS3 connection.
 
-1. Create a test catalog with a dummy table:
+#### Option 1: Using Docker Compose (Recommended)
+
+1. Ensure you have a test catalog with dummy table definitions:
 
 ```yaml
 # test_catalog.yml
@@ -173,30 +175,73 @@ test_table:
   type: "dummy"
 ```
 
-2. Run OpenAthena with the test catalog:
+2. Make sure your docker-compose.yml includes the dummy data environment variable:
+
+```yaml
+services:
+  openathena:
+    # other configuration...
+    environment:
+      - OPENATHENA_CATALOG_PATH=/app/test_catalog.yml
+      - OPENATHENA_USE_DUMMY_DATA=true
+    volumes:
+      - ./test_catalog.yml:/app/test_catalog.yml
+```
+
+3. Start the service:
 
 ```bash
-# Using Docker
-docker run -p 8000:8000 \
-  -v $(pwd)/test_catalog.yml:/app/catalog.yml \
-  -e OPENATHENA_CATALOG_PATH=/app/catalog.yml \
-  -e OPENATHENA_USE_DUMMY_DATA=true \
-  openathena
+# Using bash
+docker-compose up -d
 
-# Or update docker-compose.yml to use test_catalog.yml and run
+# Using PowerShell
 docker-compose up -d
 ```
 
-3. Test with a simple query:
+#### Option 2: Using Docker Run Command
 
+If you prefer to use Docker directly:
+
+```bash
+# Using bash
+docker run -p 8000:8000 \
+  -v $(pwd)/test_catalog.yml:/app/test_catalog.yml \
+  -e OPENATHENA_CATALOG_PATH=/app/test_catalog.yml \
+  -e OPENATHENA_USE_DUMMY_DATA=true \
+  openathena
+
+# Using PowerShell
+docker run -p 8000:8000 `
+  -v "$(Get-Location)\test_catalog.yml:/app/test_catalog.yml" `
+  -e OPENATHENA_CATALOG_PATH=/app/test_catalog.yml `
+  -e OPENATHENA_USE_DUMMY_DATA=true `
+  openathena
+```
+
+#### Testing the API
+
+Once the service is running, you can interact with it:
+
+1. Check available tables:
+```bash
+# Using curl
+curl -X GET http://localhost:8000/tables
+
+# Using PowerShell
+Invoke-WebRequest -Uri "http://localhost:8000/tables" -Method GET | Select-Object -ExpandProperty Content
+```
+
+2. Execute SQL queries:
 ```bash
 # Using curl
 curl -X POST http://localhost:8000/sql --data "SELECT * FROM test_table"
 
 # Using PowerShell
 $query = "SELECT * FROM test_table"
-Invoke-WebRequest -Uri "http://localhost:8000/sql" -Method POST -Body $query -ContentType "text/plain"
+Invoke-WebRequest -Uri "http://localhost:8000/sql" -Method POST -Body $query -ContentType "text/plain" | Select-Object -ExpandProperty Content
 ```
+
+The dummy tables come with pre-populated sample data that allows you to test the full functionality of OpenAthena without connecting to an actual OpenS3 instance.
 
 ## Testing and Health Checks
 
