@@ -1,6 +1,6 @@
 # OpenAthena Server
 
-OpenAthena is a lightweight, DuckDB-powered analytics engine designed to work seamlessly with OpenS3. It provides SQL query capabilities over data stored in OpenS3 buckets, similar to how AWS Athena works with S3 but running locally or on your private infrastructure.
+OpenAthena is a lightweight, DuckDB-powered analytics engine designed to work seamlessly with OpenS3. It provides SQL query capabilities over data stored in OpenS3 buckets, enabling powerful analytics directly on your OpenS3 data lake.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ OpenAthena combines DuckDB with OpenS3 to provide:
 ## Technical Details
 
 - **Query Engine**: Powered by DuckDB, an embedded analytical database
-- **S3 Access**: Uses DuckDB's httpfs extension to read directly from OpenS3
+- **OpenS3 Access**: Uses DuckDB's httpfs extension to read directly from OpenS3 via the standard S3 protocol
 - **Performance**: Leverages DuckDB's columnar format and Parquet push-down optimizations
 - **Scalability**: Configurable memory limits and parallelism
 
@@ -40,10 +40,15 @@ pip install -r requirements.txt
 
 2. Configure your OpenS3 credentials in `config.py` or through environment variables:
 ```bash
-# Required for direct S3 access
-export AWS_ACCESS_KEY_ID="your-opens3-access-key"
-export AWS_SECRET_ACCESS_KEY="your-opens3-secret-key"
-export S3_ENDPOINT="http://your-opens3-server:9000"
+# Required for direct OpenS3 access
+export OPENS3_ACCESS_KEY="your-opens3-access-key"
+export OPENS3_SECRET_KEY="your-opens3-secret-key"
+export OPENS3_ENDPOINT="http://your-opens3-server:9000"
+
+# Alternatively, OpenAthena also supports standard S3 variable names:
+# export AWS_ACCESS_KEY_ID="your-opens3-access-key"
+# export AWS_SECRET_ACCESS_KEY="your-opens3-secret-key"
+# export S3_ENDPOINT="http://your-opens3-server:9000"
 ```
 
 3. Start the API server:
