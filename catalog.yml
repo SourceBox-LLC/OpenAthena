@@ -1,0 +1,24 @@
+# OpenAthena Catalog Configuration
+# 
+# This file defines the tables available in OpenAthena.
+# Each table maps to a location in your OpenS3 buckets.
+
+# Example table definitions:
+
+# Sales data from 2025
+sales_2025:
+  bucket: analytics
+  prefix: 2025/
+  format: parquet
+
+# Web logs
+web_logs:
+  bucket: logs
+  prefix: apache/
+  format: json
+
+# Customer data
+customers:
+  bucket: data
+  prefix: customers/
+  format: parquet
