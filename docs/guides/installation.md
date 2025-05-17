@@ -68,6 +68,23 @@ You can install OpenAthena using one of the following methods:
      openathena
    ```
 
+4. Container Health Monitoring:
+   
+   The Docker container includes built-in health checks that monitor:
+   - API responsiveness
+   - Table availability
+   - Query execution capability
+   
+   ```bash
+   # Check container health status
+   docker inspect --format='{{.State.Health.Status}}' <container_id>
+   
+   # View detailed health check logs
+   docker inspect --format='{{json .State.Health}}' <container_id> | jq
+   ```
+   
+   The health check runs automatically every 30 seconds and will report the container as unhealthy if OpenAthena stops functioning properly.
+
 ### Method 3: Docker Compose
 
 1. Clone the repository:
@@ -108,6 +125,29 @@ You can install OpenAthena using one of the following methods:
    $query = "SELECT * FROM test_table"
    Invoke-WebRequest -Uri "http://localhost:8000/sql" -Method POST -Body $query -ContentType "text/plain"
    ```
+
+4. Health Checks with Docker Compose:
+
+   The OpenAthena container includes integrated health checks that run automatically:
+   
+   ```bash
+   # Check container health status
+   docker-compose ps
+   
+   # Get detailed health status
+   docker inspect --format='{{.State.Health.Status}}' openathena-openathena-1
+   ```
+   
+   You can also run the health check manually inside the container:
+   
+   ```bash
+   docker-compose exec openathena python /app/tests/health/run_healthcheck.py
+   ```
+   
+   The health check will validate that:
+   - The API is responding correctly
+   - Tables are available (including dummy tables)
+   - SQL queries can be executed successfully
 
 ## Post-Installation
 

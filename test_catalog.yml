@@ -1,5 +1,0 @@
-# Test catalog for OpenAthena - doesn't require OpenS3 connection
-test_table:
-  # This is a dummy table that doesn't need OpenS3
-  type: "dummy"
-  # We'll query this directly without S3

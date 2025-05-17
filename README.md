@@ -198,6 +198,37 @@ $query = "SELECT * FROM test_table"
 Invoke-WebRequest -Uri "http://localhost:8000/sql" -Method POST -Body $query -ContentType "text/plain"
 ```
 
+## Testing and Health Checks
+
+OpenAthena includes a comprehensive test suite and health check utilities to ensure reliability:
+
+### Automated Testing
+
+```bash
+# Install testing dependencies
+pip install pytest httpx pytest-cov
+
+# Run all tests
+python -m pytest
+
+# Generate coverage report
+python -m pytest --cov=open_athena
+```
+
+### Health Monitoring
+
+Use the built-in health check tool to monitor OpenAthena instances:
+
+```bash
+# Basic health check
+python tests/health/run_healthcheck.py
+
+# Advanced options
+python tests/health/run_healthcheck.py --format json --url http://your-server:8000
+```
+
+The Docker image includes health checks that automatically monitor container health status.
+
 ## Documentation
 
 See the `docs/` directory for detailed documentation on:
@@ -205,6 +236,7 @@ See the `docs/` directory for detailed documentation on:
 - SQL capabilities and limitations
 - Performance tuning
 - Advanced configuration
+- Testing and monitoring
 
 ## License
 
