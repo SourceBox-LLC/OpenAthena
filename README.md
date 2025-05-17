@@ -33,6 +33,8 @@ OpenAthena combines DuckDB with OpenS3 to provide:
 
 ## Quick Start
 
+### Option 1: Direct Installation
+
 1. Install dependencies:
 ```bash
 pip install -r requirements.txt
@@ -56,7 +58,30 @@ export OPENS3_ENDPOINT="http://your-opens3-server:9000"
 python -m open_athena.api
 ```
 
-4. Execute a query using curl or the OpenAthena SDK:
+### Option 2: Using Docker
+
+1. Build and run using Docker:
+```bash
+# Build the Docker image
+docker build -t openathena .
+
+# Run with your catalog configuration
+docker run -p 8000:8000 -v $(pwd)/catalog.yml:/app/catalog.yml \
+  -e OPENS3_ACCESS_KEY="your-opens3-access-key" \
+  -e OPENS3_SECRET_KEY="your-opens3-secret-key" \
+  -e OPENS3_ENDPOINT="http://your-opens3-server:9000" \
+  openathena
+```
+
+2. Or use Docker Compose for a complete environment:
+```bash
+# Edit environment variables in docker-compose.yml first
+docker-compose up -d
+```
+
+### Running Queries
+
+Execute a query using curl or the OpenAthena SDK:
 ```bash
 # Using curl
 curl -X POST http://localhost:8000/sql --data "SELECT * FROM sales_2025 LIMIT 10"
@@ -118,6 +143,60 @@ See the [OpenAthena SDK repository](https://github.com/SourceBox-LLC/OpenAthena-
 - **Standalone Server**: Run as a service on any machine
 - **Alongside OpenS3**: Deploy on the same system as your OpenS3 server
 - **Docker Container**: Package and deploy in containerized environments
+
+### Docker Support
+
+OpenAthena includes Docker support for easy deployment and testing:
+
+```bash
+# Build and run with Docker
+docker build -t openathena .
+docker run -p 8000:8000 -v $(pwd)/catalog.yml:/app/catalog.yml openathena
+```
+
+Or use Docker Compose for a more complete setup:
+
+```bash
+# Start both OpenAthena and OpenS3 (if available)
+docker-compose up -d
+```
+
+### Testing with Dummy Tables
+
+OpenAthena can be tested without an OpenS3 instance using dummy tables:
+
+1. Create a test catalog with a dummy table:
+
+```yaml
+# test_catalog.yml
+test_table:
+  type: "dummy"
+```
+
+2. Run OpenAthena with the test catalog:
+
+```bash
+# Using Docker
+docker run -p 8000:8000 \
+  -v $(pwd)/test_catalog.yml:/app/catalog.yml \
+  -e OPENATHENA_CATALOG_PATH=/app/catalog.yml \
+  -e OPENATHENA_USE_DUMMY_DATA=true \
+  openathena
+
+# Or update docker-compose.yml to use test_catalog.yml and run
+docker-compose up -d
+```
+
+3. Test with a simple query:
+
+```bash
+# Using curl
+curl -X POST http://localhost:8000/sql --data "SELECT * FROM test_table"
+
+# Using PowerShell
+$query = "SELECT * FROM test_table"
+Invoke-WebRequest -Uri "http://localhost:8000/sql" -Method POST -Body $query -ContentType "text/plain"
+```
 
 ## Documentation
 
