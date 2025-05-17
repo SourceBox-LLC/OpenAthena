@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  openathena:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENATHENA_HOST=0.0.0.0
+      - OPENATHENA_PORT=8000
+      - OPENATHENA_CATALOG_PATH=/app/test_catalog.yml
+      - OPENATHENA_ENABLE_CACHING=true
+      - OPENATHENA_THREADS=4
+      - OPENATHENA_MEMORY_LIMIT=4GB
+      # For local testing, we'll use dummy tables in the test catalog
+      - OPENATHENA_USE_DUMMY_DATA=true
+    volumes:
+      - ./catalog.yml:/app/catalog.yml
+      - ./test_catalog.yml:/app/test_catalog.yml
+
+networks:
+  default:
