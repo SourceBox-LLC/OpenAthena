@@ -37,13 +37,14 @@ def test_httpfs_extension():
         # Install and load the httpfs extension
         con.sql("INSTALL httpfs; LOAD httpfs;")
         
-        # Verify it's loaded
-        result = con.sql("SELECT * FROM pragma_version() WHERE extension_name = 'httpfs'")
-        if result.fetchone():
+        # Verify it's loaded - use a different approach to check if httpfs is loaded
+        try:
+            # Try to use an httpfs-specific function
+            con.sql("SET s3_region='us-east-1';")
             print("✓ httpfs extension loaded successfully")
             return True
-        else:
-            print("✗ httpfs extension not found after loading")
+        except Exception as verify_error:
+            print(f"✗ httpfs extension verification failed: {verify_error}")
             return False
     except Exception as e:
         print(f"✗ httpfs extension test failed: {e}")

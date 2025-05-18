@@ -51,14 +51,35 @@ def load_catalog(con, cat_path: str = "catalog.yml") -> None:
             # Build S3 path pattern
             path = f"s3://{bucket}/{prefix}**/*.{file_format}"
             
-            # Create or replace view
-            con.sql(f"CREATE OR REPLACE VIEW {tbl} AS SELECT * FROM '{path}';")
-            print(f"Created view for table '{tbl}' pointing to {path}")
+            # Make sure table name is SQL safe
+            safe_tbl = f'"{tbl}"' if "-" in tbl else tbl
+            
+            # First, test if we can access the S3 bucket
+            test_query = f"SELECT COUNT(*) FROM '{path}' LIMIT 1"
+            try:
+                # Attempt to run a test query
+                con.sql(test_query)
+                # If successful, create the view
+                con.sql(f"CREATE OR REPLACE VIEW {safe_tbl} AS SELECT * FROM '{path}';")
+                print(f"✅ Created view for table '{tbl}' pointing to {path}")
+            except Exception as access_error:
+                # Provide detailed diagnostic information
+                print(f"⚠️ S3 access error for bucket '{bucket}': {access_error}")
+                print("   Please verify:")
+                print("   1. The bucket exists on your OpenS3 server")
+                print("   2. The S3 credentials are correct")
+                print("   3. The OpenS3 endpoint URL is accessible")
+                # Create a dummy view with diagnostic information
+                con.sql(f"CREATE OR REPLACE VIEW {safe_tbl} AS SELECT 1 as id, 'Connection error: {bucket}' as error_message WHERE 1=0;")
+                print(f"   Created empty fallback view for table '{tbl}'")
+                # Raise the error again to be caught by the outer exception handler
+                raise
         except Exception as e:
-            print(f"Error creating view for table '{tbl}': {e}")
+            print(f"❌ Error creating view for table '{tbl}': {e}")
             # Create a dummy view with no data as a fallback
-            con.sql(f"CREATE OR REPLACE VIEW {tbl} AS SELECT 1 as id WHERE 1=0;")
-            print(f"Created empty fallback view for table '{tbl}'")
+            con.sql(f"CREATE OR REPLACE VIEW {safe_tbl} AS SELECT 1 as id, 'Error: {str(e).replace("'", "''")}' as error_message WHERE 1=0;")
+            print(f"   Created empty fallback view for table '{tbl}'")
+            # Continue processing other tables
                 
 
 

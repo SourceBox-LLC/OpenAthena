@@ -4,6 +4,7 @@ Integration tests for OpenAthena API endpoints.
 import os
 import json
 import pytest
+import tempfile
 from fastapi.testclient import TestClient
 
 from open_athena.api import app
@@ -12,14 +13,17 @@ from open_athena.api import app
 @pytest.fixture
 def client():
     """Create a test client for the API."""
+    # Create a temporary catalog file in a temp directory
+    temp_dir = tempfile.gettempdir()
+    catalog_path = os.path.join(temp_dir, "openathena_test_catalog.yml")
+    
     # Set environment variables for testing
     os.environ["OPENATHENA_USE_DUMMY_DATA"] = "true"
-    os.environ["OPENATHENA_CATALOG_PATH"] = "test_catalog.yml"
+    os.environ["OPENATHENA_CATALOG_PATH"] = catalog_path
     
-    # Create a test catalog file if it doesn't exist
-    if not os.path.exists("test_catalog.yml"):
-        with open("test_catalog.yml", "w") as f:
-            f.write('''test_table:
+    # Create the test catalog file
+    with open(catalog_path, "w") as f:
+        f.write('''test_table:
   type: "dummy"
 ''')
     
@@ -28,8 +32,13 @@ def client():
         yield client
         
     # Cleanup
-    if os.path.exists("test_catalog.yml"):
-        os.remove("test_catalog.yml")
+    if os.path.exists(catalog_path):
+        try:
+            os.remove(catalog_path)
+        except (PermissionError, OSError):
+            # Log but don't fail if we can't remove it
+            print(f"Warning: Could not remove temporary catalog file {catalog_path}")
+            pass
 
 
 def test_health_endpoint(client):

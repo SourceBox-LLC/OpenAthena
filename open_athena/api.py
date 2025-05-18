@@ -102,33 +102,55 @@ async def execute_sql(
     
     try:
         # Execute query
+        print(f"Executing SQL query: {sql}")
         result = db.execute_query(sql)
+        print("Query executed successfully")
         
         if format.lower() == "csv":
             # Return CSV
+            print("Converting result to CSV")
             csv_data = io.StringIO()
             result.to_csv(csv_data)
+            print("Returning CSV response")
             return StreamingResponse(
                 iter([csv_data.getvalue()]),
                 media_type="text/csv"
             )
         else:
             # Return Arrow format (default)
-            table = result.arrow()
-            batch_reader = pa.RecordBatchReader.from_batches(
-                table.schema, table.to_batches()
-            )
-            sink = io.BytesIO()
-            with pa.ipc.new_stream(sink, batch_reader.schema) as writer:
-                for batch in batch_reader:
-                    writer.write_batch(batch)
-            
-            return StreamingResponse(
-                io.BytesIO(sink.getvalue()),
-                media_type="application/vnd.apache.arrow.stream"
-            )
+            print("Converting result to Arrow format")
+            try:
+                table = result.arrow()
+                batch_reader = pa.RecordBatchReader.from_batches(
+                    table.schema, table.to_batches()
+                )
+                sink = io.BytesIO()
+                with pa.ipc.new_stream(sink, batch_reader.schema) as writer:
+                    for batch in batch_reader:
+                        writer.write_batch(batch)
+                
+                print("Returning Arrow response")
+                return StreamingResponse(
+                    io.BytesIO(sink.getvalue()),
+                    media_type="application/vnd.apache.arrow.stream"
+                )
+            except Exception as arrow_error:
+                print(f"Error converting to Arrow format: {arrow_error}")
+                # Fallback to JSON if Arrow conversion fails
+                json_data = {"data": result.to_df().to_dict(orient='records')}
+                return JSONResponse(content=json_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR EXECUTING QUERY: {str(e)}\n{error_details}")
+        raise HTTPException(
+            status_code=500, 
+            detail={
+                "error": str(e),
+                "traceback": error_details,
+                "query": sql
+            }
+        )
 
 
 @app.get("/tables", tags=["Catalog"])
@@ -150,6 +172,21 @@ async def list_tables(db: DuckDBManager = Depends(get_db)) -> Dict[str, Any]:
 async def reload_catalog(db: DuckDBManager = Depends(get_db)) -> Dict[str, str]:
     """
     Reload the catalog configuration.
+    
+    Args:
+        db: DuckDB manager instance
+        
+    Returns:
+        Success message
+    """
+    db.reload_catalog()
+    return {"status": "ok", "message": "Catalog reloaded successfully"}
+
+
+@app.post("/reload-catalog", tags=["Catalog"])
+async def reload_catalog_alt(db: DuckDBManager = Depends(get_db)) -> Dict[str, str]:
+    """
+    Alternative endpoint for catalog reload (for UI compatibility).
     
     Args:
         db: DuckDB manager instance

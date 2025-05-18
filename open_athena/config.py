@@ -85,7 +85,10 @@ class Config:
             self.config_data['api']['port'] = int(os.environ.get('OPENATHENA_PORT'))
         
         # S3 settings
-        if os.environ.get('S3_ENDPOINT'):
+        # Check for OpenS3 specific environment variables first, then fall back to AWS ones
+        if os.environ.get('OPENS3_ENDPOINT'):
+            self.config_data['s3']['endpoint'] = os.environ.get('OPENS3_ENDPOINT')
+        elif os.environ.get('S3_ENDPOINT'):
             self.config_data['s3']['endpoint'] = os.environ.get('S3_ENDPOINT')
         
         if os.environ.get('AWS_REGION'):

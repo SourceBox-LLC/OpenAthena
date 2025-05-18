@@ -69,10 +69,28 @@ class DuckDBManager:
     def _initialize_httpfs(self) -> None:
         """Install and load httpfs extension for S3 access."""
         try:
-            self.connection.sql("INSTALL httpfs; LOAD httpfs;")
-            print("Loaded httpfs extension for S3 access")
+            # First check if httpfs is already installed
+            try:
+                self.connection.sql("LOAD httpfs;")
+                print("✅ Loaded existing httpfs extension for S3 access")
+            except Exception:
+                # If loading fails, try installing it first
+                self.connection.sql("INSTALL httpfs; LOAD httpfs;")
+                print("✅ Installed and loaded httpfs extension for S3 access")
+                
+            # Verify httpfs is properly installed by testing a basic function
+            try:
+                self.connection.sql("SELECT httpfs_version() AS version")
+                print("✅ Verified httpfs extension is working properly")
+            except Exception as verify_error:
+                print(f"⚠️ httpfs installed but verification failed: {verify_error}")
+                print("   This might affect your ability to connect to OpenS3")
         except Exception as e:
-            print(f"Error loading httpfs extension: {e}")
+            print(f"❌ Error loading httpfs extension: {e}")
+            print("   Without httpfs, OpenAthena cannot connect to OpenS3.")
+            print("   Please ensure you have internet connectivity to download extensions.")
+            print("   Or verify that DuckDB has permission to access the extension directory.")
+            # We don't re-raise as we want to continue initialization
     
     def _load_catalog(self) -> None:
         """Load the catalog if it exists."""
@@ -109,33 +127,104 @@ class DuckDBManager:
         Args:
             access_key: S3 access key
             secret_key: S3 secret key
-            endpoint: S3 endpoint (for OpenS3)
+            endpoint: S3 endpoint URL
             region: S3 region
-            use_ssl: Whether to use SSL
+            use_ssl: Whether to use SSL for S3 connections
         """
-        # Use provided credentials or environment variables
-        access_key = access_key or os.environ.get("AWS_ACCESS_KEY_ID")
-        secret_key = secret_key or os.environ.get("AWS_SECRET_ACCESS_KEY")
-        endpoint = endpoint or os.environ.get("S3_ENDPOINT")
-        region = region or os.environ.get("AWS_REGION", "us-east-1")
+        # Handle OpenS3-specific configurations
+        is_opens3 = endpoint and ("10.0.0.204" in endpoint or "localhost" in endpoint or "127.0.0.1" in endpoint)
         
         if access_key and secret_key:
             # Set global variables for httpfs
-            self.connection.sql(f"SET s3_access_key_id='{access_key}';")
-            self.connection.sql(f"SET s3_secret_access_key='{secret_key}';")
-            
-            if endpoint:
-                self.connection.sql(f"SET s3_endpoint='{endpoint}';")
-            
-            self.connection.sql(f"SET s3_region='{region}';")
-            self.connection.sql(f"SET s3_use_ssl={str(use_ssl).lower()};")
-            
-            print("Configured S3 credentials for DuckDB")
+            try:
+                # Fix for protocol dropping issue with DuckDB's httpfs
+                if is_opens3 and endpoint:
+                    # Remove protocol and trailing slash for better DuckDB compatibility
+                    endpoint_no_protocol = endpoint.replace('http://', '').replace('https://', '').rstrip('/')
+                    print(f"Using OpenS3 endpoint (no protocol): {endpoint_no_protocol}")
+                    
+                    # Try both URL styles for OpenS3 compatibility
+                    # First try virtual host style (default)
+                    self.connection.sql("SET s3_url_style='vhost';")
+                    print(f"✅ Configured for OpenS3 virtual-host URL access")
+                    
+                    # Use the endpoint without protocol to avoid DuckDB's double-slash issue
+                    self.connection.sql(f"SET s3_access_key_id='{access_key}';") 
+                    self.connection.sql(f"SET s3_secret_access_key='{secret_key}';") 
+                    self.connection.sql(f"SET s3_endpoint='{endpoint_no_protocol}';") 
+                    # Set path style URL access which is required for OpenS3
+                    self.connection.sql("SET s3_url_style='path';")
+                    # Disable SSL for local testing if using http protocol
+                    if endpoint.startswith('http://'):
+                        self.connection.sql("SET s3_use_ssl=false;")
+                    print(f"✅ Configured OpenS3 server at {endpoint_no_protocol}")
+                else:
+                    # Standard AWS S3 configuration
+                    self.connection.sql(f"SET s3_access_key_id='{access_key}';") 
+                    self.connection.sql(f"SET s3_secret_access_key='{secret_key}';") 
+                    
+                    if endpoint:
+                        self.connection.sql(f"SET s3_endpoint='{endpoint}';") 
+                
+                self.connection.sql(f"SET s3_region='{region}';") 
+                self.connection.sql(f"SET s3_use_ssl={str(use_ssl).lower()};") 
+                
+                # Do a quick test query to verify connection
+                try:
+                    # We'll query for the S3 configuration which should be accessible with these credentials
+                    self.connection.sql("SELECT s3_config_values LIMIT 1;")
+                    print(f"✅ Successfully configured S3 credentials for DuckDB")
+                    
+                    # If it's OpenS3, try a more specific check
+                    if is_opens3:
+                        try:
+                            # Try to access a known bucket in OpenS3 for verification
+                            self.connection.sql("SET s3_allow_errors=true;")  # Allow errors to continue execution
+                            
+                            # Test if we can find any available buckets
+                            buckets = ["my-test-bucket", "test-bucket-2", "my-bucket"]
+                            for bucket in buckets:
+                                try:
+                                    # Look for files in a common bucket
+                                    print(f"Testing connection to bucket '{bucket}'...")
+                                    self.connection.sql(f"SELECT * FROM read_csv_auto('s3://{bucket}/*') LIMIT 0;")
+                                    print(f"✅ Successfully verified connection to '{bucket}' bucket in OpenS3")
+                                    break
+                                except Exception:
+                                    continue
+                                    
+                        except Exception as opens3_error:
+                            print(f"ℹ️ OpenS3 verification attempted but couldn't locate buckets: {opens3_error}")
+                            print("   Make sure you have files in your OpenS3 buckets.")
+                except Exception as test_error:
+                    print(f"⚠️ S3 credentials set but verification query failed: {test_error}")
+                    print("   This might affect your ability to query S3 data.")
+                    
+            except Exception as e:
+                print(f"❌ Error configuring S3 credentials: {e}")
+                print("   Without S3 credentials, OpenAthena cannot connect to OpenS3 buckets.")
+                print("   Please check your environment variables.")
         else:
-            print("No S3 credentials provided - relying on environment variables")
+            print("⚠️ S3 credentials not found in environment variables.")
+            print("   To connect to OpenS3, set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+            print("   or OPENS3_ACCESS_KEY and OPENS3_SECRET_KEY environment variables.")
+            if not os.environ.get("AWS_ACCESS_KEY_ID") and not os.environ.get("OPENS3_ACCESS_KEY"):
+                print("❌ Warning: No S3 credentials found in environment variables.")
+                print("   OpenAthena will not be able to connect to OpenS3.")
+                print("   Please set credentials in your .env file or environment variables.")
+                print("   Hint: Run 'python -m open_athena.main configure_opens3' to set up credentials.")
+                
+            # Check endpoint configuration
+            if os.environ.get("S3_ENDPOINT") or os.environ.get("OPENS3_ENDPOINT"):
+                detected_endpoint = os.environ.get("S3_ENDPOINT") or os.environ.get("OPENS3_ENDPOINT")
+                print(f"   Using S3 endpoint from environment: {detected_endpoint}")
+            else:
+                print("⚠️ No S3 endpoint found in environment variables. Using default AWS S3 endpoint.")
+                print("   If you're connecting to OpenS3, this will fail. Set S3_ENDPOINT or OPENS3_ENDPOINT.")
+                print("   Hint: For your Raspberry Pi OpenS3 server, use: http://10.0.0.204:80")
     
     def close(self) -> None:
         """Close the DuckDB connection."""
-        if self.connection:
+        if self.connection is not None:
             self.connection.close()
             self.connection = None

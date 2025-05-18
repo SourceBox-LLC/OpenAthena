@@ -16,9 +16,29 @@ The integration leverages DuckDB's httpfs extension to read data directly from O
 - Running OpenS3 server
 - OpenS3 access and secret keys
 - OpenAthena installed and configured
-- Data stored in OpenS3 buckets (preferably in Parquet format)
+- Data stored in OpenS3 buckets (preferably in Parquet or CSV format)
 
 ## Connection Configuration
+
+### Local Development Considerations
+
+When running both OpenAthena and OpenS3 locally, be aware of potential port conflicts:
+
+- **OpenAthena** defaults to port 8000
+- **OpenS3** also defaults to port 8000
+
+To avoid port conflicts, consider:
+
+1. Running OpenS3 on port 8001 (or another port)
+2. Running OpenAthena on port 8000 (default)
+
+```bash
+# Start OpenS3 on port 8001
+python -m open_s3.server --port 8001
+
+# Start OpenAthena on default port 8000
+python -m open_athena.main
+```
 
 ### 1. Configure OpenS3 Credentials
 
@@ -26,12 +46,12 @@ Set the following environment variables to allow OpenAthena to authenticate with
 
 ```bash
 # Windows PowerShell
-$env:OPENS3_ENDPOINT = "http://localhost:9000"
-$env:OPENS3_ACCESS_KEY = "your-access-key"
-$env:OPENS3_SECRET_KEY = "your-secret-key"
+$env:OPENS3_ENDPOINT = "http://localhost:8001"  # Note the port changed to 8001
+$env:OPENS3_ACCESS_KEY = "your-access-key"  # Default is often "admin"
+$env:OPENS3_SECRET_KEY = "your-secret-key"  # Default is often "password"
 
 # Linux/macOS
-export OPENS3_ENDPOINT="http://localhost:9000"
+export OPENS3_ENDPOINT="http://localhost:8001"
 export OPENS3_ACCESS_KEY="your-access-key"
 export OPENS3_SECRET_KEY="your-secret-key"
 ```

@@ -9,6 +9,7 @@ The tests are organized into the following categories:
 - **Unit Tests**: Test individual components in isolation
 - **Integration Tests**: Test multiple components working together
 - **Health Checks**: Tools for monitoring and diagnosing OpenAthena instances
+- **Utils**: Shared testing utilities and helper functions
 
 ## Running Tests
 
