@@ -8,11 +8,12 @@ the DuckDB database and managing the catalog.
 import os
 import io
 import json
+import sys
 from typing import Dict, List, Any, Optional
 
 import pyarrow as pa
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from open_athena.database import DuckDBManager
@@ -88,7 +89,7 @@ async def execute_sql(
     Args:
         request: FastAPI request object with SQL query in body
         db: DuckDB manager instance
-        format: Output format (arrow or csv)
+        format: Output format (arrow, csv, or json)
         
     Returns:
         Query results in specified format
@@ -116,6 +117,20 @@ async def execute_sql(
                 iter([csv_data.getvalue()]),
                 media_type="text/csv"
             )
+        elif format.lower() == "json":
+            # Return JSON format
+            print("Converting result to JSON")
+            try:
+                # Convert result to pandas DataFrame and then to dict
+                json_data = {"data": result.to_df().to_dict(orient='records')}
+                print("Returning JSON response")
+                return JSONResponse(content=json_data)
+            except Exception as json_error:
+                print(f"Error converting to JSON format: {json_error}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error converting result to JSON: {str(json_error)}"
+                )
         else:
             # Return Arrow format (default)
             print("Converting result to Arrow format")
