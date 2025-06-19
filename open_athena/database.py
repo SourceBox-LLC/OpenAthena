@@ -131,6 +131,42 @@ class DuckDBManager:
             region: S3 region
             use_ssl: Whether to use SSL for S3 connections
         """
+        # If parameters were not provided, try to get them from environment variables
+        if access_key is None:
+            access_key = (os.environ.get("OPENS3_ACCESS_KEY") or 
+                         os.environ.get("AWS_ACCESS_KEY_ID") or 
+                         os.environ.get("DUCKDB_S3_ACCESS_KEY_ID"))
+            
+        if secret_key is None:
+            secret_key = (os.environ.get("OPENS3_SECRET_KEY") or 
+                         os.environ.get("AWS_SECRET_ACCESS_KEY") or 
+                         os.environ.get("DUCKDB_S3_SECRET_ACCESS_KEY"))
+            
+        if endpoint is None:
+            endpoint = (os.environ.get("OPENS3_ENDPOINT") or 
+                       os.environ.get("S3_ENDPOINT") or 
+                       os.environ.get("DUCKDB_S3_ENDPOINT"))
+            # Add protocol if missing
+            if endpoint and not (endpoint.startswith("http://") or endpoint.startswith("https://")):
+                endpoint = f"http://{endpoint}"
+                
+        if region is None:
+            region = (os.environ.get("AWS_REGION") or 
+                     os.environ.get("AWS_DEFAULT_REGION") or 
+                     "us-east-1")
+            
+        if use_ssl is True and os.environ.get("DUCKDB_S3_USE_SSL") is not None:
+            use_ssl = os.environ.get("DUCKDB_S3_USE_SSL").lower() in ("true", "1", "yes")
+        elif use_ssl is True and os.environ.get("S3_USE_SSL") is not None:
+            use_ssl = os.environ.get("S3_USE_SSL").lower() in ("true", "1", "yes")
+        
+        print(f"S3 configuration from environment:")
+        print(f"  access_key: {'***' if access_key else 'None'}")
+        print(f"  secret_key: {'***' if secret_key else 'None'}")
+        print(f"  endpoint: {endpoint or 'None'}")
+        print(f"  region: {region or 'None'}")
+        print(f"  use_ssl: {use_ssl}")
+            
         # Handle OpenS3-specific configurations
         is_opens3 = endpoint and ("10.0.0.204" in endpoint or "localhost" in endpoint or "127.0.0.1" in endpoint)
         

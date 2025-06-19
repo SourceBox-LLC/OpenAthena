@@ -23,13 +23,15 @@ OpenAthena combines DuckDB with OpenS3 to provide:
 - **REST API**: Endpoints for executing queries and retrieving results
 - **Efficient Data Transfer**: Arrow-based streaming for optimal performance
 - **Embeddable Engine**: Small footprint that can run alongside OpenS3
+- **Local File Proxy**: Bridges compatibility gaps between DuckDB 1.2.2 and OpenS3's API
 
 ## Technical Details
 
 - **Query Engine**: Powered by DuckDB, an embedded analytical database
-- **OpenS3 Access**: Uses DuckDB's httpfs extension to read directly from OpenS3 via the standard S3 protocol
+- **OpenS3 Access**: Uses a Local File Proxy to download files from OpenS3 to a temporary directory before querying
 - **Performance**: Leverages DuckDB's columnar format and Parquet push-down optimizations
 - **Scalability**: Configurable memory limits and parallelism
+- **Windows Support**: Special handling for Windows paths with apostrophes
 
 ## Quick Start
 
@@ -40,23 +42,32 @@ OpenAthena combines DuckDB with OpenS3 to provide:
 pip install -r requirements.txt
 ```
 
-2. Configure your OpenS3 credentials in `config.py` or through environment variables:
+2. Configure your OpenS3 credentials through environment variables:
 ```bash
-# Required for direct OpenS3 access
-export OPENS3_ACCESS_KEY="your-opens3-access-key"
-export OPENS3_SECRET_KEY="your-opens3-secret-key"
-export OPENS3_ENDPOINT="http://your-opens3-server:9000"
+# Required for OpenS3 access via Local File Proxy
+export OPENS3_ACCESS_KEY="your-opens3-access-key"  # Default is often "admin"
+export OPENS3_SECRET_KEY="your-opens3-secret-key"  # Default is often "password"
+export S3_ENDPOINT="http://your-opens3-server:8001"  # Adjust port as needed
 
-# Alternatively, OpenAthena also supports standard S3 variable names:
-# export AWS_ACCESS_KEY_ID="your-opens3-access-key"
-# export AWS_SECRET_ACCESS_KEY="your-opens3-secret-key"
-# export S3_ENDPOINT="http://your-opens3-server:9000"
+# IMPORTANT: Do NOT use AWS_* environment variables as they may cause conflicts
+# with OpenS3 integration
 ```
 
-3. Start the API server:
+Or use the provided startup script which sets these variables automatically:
 ```bash
-python -m open_athena.api
+# Windows PowerShell
+.\start-openathena.ps1
+
+# Linux/macOS
+sh ./start-openathena.sh
 ```
+
+3. Start the server:
+```bash
+python -m open_athena.main
+```
+
+This will start both the SQL engine and API server. The OpenS3 file proxy will initialize automatically and handle OpenS3 file downloads when needed.
 
 ### Option 2: Using Docker
 
@@ -69,7 +80,7 @@ docker build -t openathena .
 docker run -p 8000:8000 -v $(pwd)/catalog.yml:/app/catalog.yml \
   -e OPENS3_ACCESS_KEY="your-opens3-access-key" \
   -e OPENS3_SECRET_KEY="your-opens3-secret-key" \
-  -e OPENS3_ENDPOINT="http://your-opens3-server:9000" \
+  -e S3_ENDPOINT="http://your-opens3-server:8001" \
   openathena
 ```
 

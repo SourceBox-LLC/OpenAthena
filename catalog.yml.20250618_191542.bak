@@ -9,10 +9,10 @@ test_analytics_csv:
     type: VARCHAR
   - name: value
     type: DOUBLE
-  query: SELECT * FROM read_csv_auto('s3://test-analytics/*.csv')
+  query: SELECT * FROM read_csv_auto('s3://test-analytics/csv/*')
   type: view
 test_analytics_csv_http:
-  query: SELECT * FROM read_csv_auto('http://admin:password@localhost:8001/buckets/test-analytics/objects/sample_data.csv')
+  query: SELECT * FROM read_csv_auto('http://admin:password@localhost:8001/test-analytics/csv/*')
   type: view
 test_analytics_csv_meta:
   bucket: test-analytics
@@ -26,10 +26,10 @@ test_analytics_parquet:
     type: VARCHAR
   - name: value
     type: VARCHAR
-  query: SELECT * FROM read_parquet('s3://test-analytics/*.parquet')
+  query: SELECT * FROM read_parquet_auto('s3://test-analytics/parquet/*')
   type: view
 test_analytics_parquet_http:
-  query: SELECT * FROM read_parquet('http://admin:password@localhost:8001/buckets/test-analytics/objects/sample_data.parquet')
+  query: SELECT * FROM read_parquet_auto('http://admin:password@localhost:8001/test-analytics/parquet/*')
   type: view
 test_analytics_parquet_meta:
   bucket: test-analytics
@@ -63,10 +63,10 @@ world_pop_csv:
     type: VARCHAR
   - name: WorldShare
     type: VARCHAR
-  query: SELECT * FROM read_csv_auto('s3://world-pop/*.csv')
+  query: SELECT * FROM read_csv_auto('s3://world-pop/csv/*')
   type: view
 world_pop_csv_http:
-  query: SELECT * FROM read_csv_auto('http://admin:password@localhost:8001/buckets/world-pop/objects/WorldPopulation2023.csv')
+  query: SELECT * FROM read_csv_auto('http://admin:password@localhost:8001/world-pop/csv/*')
   type: view
 world_pop_csv_meta:
   bucket: world-pop

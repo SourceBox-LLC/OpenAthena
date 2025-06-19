@@ -9,7 +9,7 @@ OpenAthena and OpenS3 are designed to work seamlessly together:
 - **OpenS3** serves as your data lake storage system
 - **OpenAthena** provides SQL analytics capabilities on that data
 
-The integration leverages DuckDB's httpfs extension to read data directly from OpenS3 using the S3 protocol.
+The current integration uses a Local File Proxy that downloads files from OpenS3 to a temporary directory before querying. This approach bridges compatibility gaps between DuckDB 1.2.2 and OpenS3's API. See the [Local File Proxy documentation](../local_file_proxy.md) for details.
 
 ## Prerequisites
 
@@ -46,57 +46,102 @@ Set the following environment variables to allow OpenAthena to authenticate with
 
 ```bash
 # Windows PowerShell
-$env:OPENS3_ENDPOINT = "http://localhost:8001"  # Note the port changed to 8001
 $env:OPENS3_ACCESS_KEY = "your-access-key"  # Default is often "admin"
 $env:OPENS3_SECRET_KEY = "your-secret-key"  # Default is often "password"
+$env:S3_ENDPOINT = "http://localhost:8001"  # Note the port changed to 8001
 
 # Linux/macOS
-export OPENS3_ENDPOINT="http://localhost:8001"
 export OPENS3_ACCESS_KEY="your-access-key"
 export OPENS3_SECRET_KEY="your-secret-key"
+export S3_ENDPOINT="http://localhost:8001"
 ```
+
+**IMPORTANT**: 
+- Use `OPENS3_ACCESS_KEY` and `OPENS3_SECRET_KEY` for credentials (not AWS_* variables)
+- Use `S3_ENDPOINT` for the OpenS3 server URL
+- These variables must be set before starting the OpenAthena server
+- A startup script (`start-openathena.ps1`) is provided to set these variables automatically
 
 ### 2. Create a Catalog File
 
-Create a catalog.yml file that points to your OpenS3 buckets:
+Create or update the catalog.yml file that points to your OpenS3 buckets. For each table definition, you can use one of these formats:
 
 ```yaml
 # catalog.yml
-sales_data:
-  bucket: analytics
-  prefix: sales/
-  format: parquet
-
-customer_data:
-  bucket: customers
+# Method 1: Using bucket, prefix, and format (handled by metadata discovery)
+world_pop_csv_meta:
+  bucket: world-pop
   prefix: ""
-  format: parquet
+  format: csv
+
+# Method 2: Using direct S3 path with wildcard (processed by proxy)
+world_pop_csv:
+  query: "SELECT * FROM read_csv_auto('s3://world-pop/*.csv');"
+
+# Method 3: Using direct HTTP URL to specific file (processed by proxy)
+world_pop_csv_http:
+  query: "SELECT * FROM read_csv_auto('http://admin:password@localhost:8001/buckets/world-pop/objects/WorldPopulation2023.csv');"
 ```
+
+> **Note**: The Local File Proxy will automatically convert S3 and HTTP paths to local file paths during catalog loading.
 
 ### 3. Start OpenAthena
 
+Use the provided startup script which sets proper environment variables:
+
 ```bash
-python -m open_athena.api
+# Windows PowerShell
+.\start-openathena.ps1
+
+# Linux/macOS
+sh ./start-openathena.sh
+```
+
+Or manually with environment variables:
+
+```bash
+# Set environment variables first
+python -m open_athena.main
 ```
 
 ## Testing the Integration
 
 To verify the integration is working:
 
-1. **Create a test bucket in OpenS3** (if you don't already have data):
+1. **Ensure OpenS3 is running** with test data:
    
-   Use the OpenS3 web interface or API to create a bucket and upload test files.
-
-2. **Add the bucket to your catalog**:
-   
-   ```yaml
-   test_bucket:
-     bucket: test
-     prefix: ""
-     format: parquet
+   ```bash
+   # Check OpenS3 is running on port 8001 with test data in buckets
+   curl http://localhost:8001/buckets
    ```
 
-3. **Run a test query**:
+2. **Validate your catalog configuration**:
+   
+   Make sure your catalog.yml includes entries for your OpenS3 buckets.
+
+3. **Start OpenAthena with correct environment variables**:
+   
+   Use the startup script or set variables manually.
+
+4. **Run test queries in the OpenAthena GUI**:
+
+   ```sql
+   -- Basic test query
+   SELECT * FROM world_pop_csv LIMIT 5;
+   
+   -- More complex query
+   SELECT 
+     Country, 
+     Population2023, 
+     "Density(P/Km²)" 
+   FROM world_pop_csv 
+   WHERE Population2023 > 100000000 
+   ORDER BY Population2023 DESC;
+   ```
+
+5. **Troubleshoot if needed**:
+   
+   Check OpenAthena logs for any errors about proxy downloads or file access.
    
    ```bash
    # Windows PowerShell

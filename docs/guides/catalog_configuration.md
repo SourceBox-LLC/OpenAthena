@@ -13,8 +13,12 @@ An OpenAthena catalog is a YAML file that maps table names to data locations in 
 
 ## Catalog File Structure
 
+There are several ways to configure tables in the catalog:
+
+### 1. Standard OpenS3 Tables
+
 ```yaml
-# Basic catalog.yml example
+# Basic catalog.yml example using bucket/prefix pattern
 sales_data:
   bucket: analytics
   prefix: sales/2025/
@@ -31,13 +35,43 @@ customer_data:
   format: csv
 ```
 
+### 2. Direct SQL Query Tables
+
+```yaml
+# Direct SQL query definition examples
+parquet_table:
+  query: >-
+    SELECT * FROM read_parquet('path/to/local/file.parquet')
+
+csv_table:
+  query: >-
+    SELECT * FROM read_csv_auto('path/to/local/file.csv')
+```
+
+### 3. HTTP/S3 Path Tables (with Local File Proxy)
+
+```yaml
+# OpenS3 HTTP path examples
+opens3_csv_table:
+  query: >-
+    SELECT * FROM read_csv_auto('http://localhost:8001/buckets/test-bucket/objects/file.csv')
+
+# S3 path with wildcard example
+opens3_wildcard_parquet:
+  query: >-
+    SELECT * FROM read_parquet('s3://my-bucket/*.parquet')
+```
+
 ## Supported Data Formats
 
 OpenAthena supports the following data formats through DuckDB:
 
 - **Parquet**: Optimized columnar format (recommended for performance)
+  - Use `read_parquet()` function in queries, NOT `read_parquet_auto()`
 - **CSV**: Comma-separated values
+  - Use `read_csv_auto()` for automatic schema detection
 - **JSON**: JavaScript Object Notation
+  - Use `read_json_auto()` for automatic schema detection
 - **ORC**: Optimized Row Columnar format
 - **Avro**: Apache Avro format
 - **Dummy**: Special format for testing without OpenS3
@@ -77,6 +111,33 @@ export OPENATHENA_CATALOG_PATH=/path/to/your/catalog.yml
 ```
 
 ## Advanced Catalog Configuration
+
+### Wildcard Path Support
+
+OpenAthena supports wildcard patterns for matching multiple files:
+
+```yaml
+all_csv_files:
+  query: >-
+    SELECT * FROM read_csv_auto('s3://my-bucket/*.csv')
+
+all_parquet_by_date:
+  query: >-
+    SELECT * FROM read_parquet('s3://analytics/sales/2025/06/*.parquet')
+```
+
+The Local File Proxy will expand these wildcards by listing all matching objects in the bucket and downloading them for querying.
+
+### Windows Path Handling
+
+When running on Windows with usernames containing apostrophes (e.g., `S'Bussiso`), special handling is required:
+
+```yaml
+sql_escape_example:
+  query: >-
+    -- Note that apostrophes in file paths must be doubled for SQL escaping
+    SELECT * FROM read_csv_auto('C:\Users\S''Bussiso\path\to\file.csv')
+```
 
 ### Partitioning
 
@@ -170,12 +231,33 @@ To verify your catalog configuration:
 
 ## Troubleshooting
 
-If your catalog doesn't work as expected:
+### Common Issues
 
-1. Check that the buckets and prefixes exist in your OpenS3 instance
-2. Verify OpenS3 credentials and connection settings
-3. Make sure the file format matches the actual data files
-4. Check OpenAthena logs for detailed error messages
+If a table in your catalog is not showing up or returning errors:
+
+1. **Empty results or no data returned:**
+   - Verify OpenS3 is running and accessible
+   - Check that environment variables are correctly set (S3_ENDPOINT, OPENS3_ACCESS_KEY, OPENS3_SECRET_KEY)
+   - Confirm the bucket and files exist in OpenS3
+
+2. **SQL syntax errors:**
+   - Check for apostrophes in Windows paths (must be doubled in SQL: `'` → `''`)
+   - For direct SQL queries, ensure backslashes are properly escaped (doubled)
+   - Verify function name is correct: use `read_parquet()` not `read_parquet_auto()`
+
+3. **Wildcard pattern not matching files:**
+   - Verify the pattern matches actual files in the bucket
+   - Check if files are at the root (no prefix) instead of in subdirectories
+   - Test the pattern directly using the OpenS3 API
+
+4. **Windows path issues:**
+   - Paths with apostrophes need special handling
+   - Review the Local File Proxy documentation for details
+
+5. **Other issues:**
+   - Check OpenAthena logs for detailed error messages
+   - Verify OpenS3 credentials and connection settings
+   - Make sure the file format matches the actual data files
 
 ## Next Steps
 
