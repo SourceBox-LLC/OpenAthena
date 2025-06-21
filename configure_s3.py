@@ -13,8 +13,10 @@ import duckdb
 
 # Import our custom S3 authentication middleware
 try:
-    from open_athena.s3_auth_middleware import (configure_httpfs_headers_auth,
-                                                get_opens3_credentials)
+    from open_athena.s3_auth_middleware import (
+        configure_httpfs_headers_auth,
+        get_opens3_credentials,
+    )
 
     print("✅ Using OpenAthena S3 authentication middleware")
 except ImportError:
@@ -22,7 +24,9 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         from open_athena.s3_auth_middleware import (
-            configure_httpfs_headers_auth, get_opens3_credentials)
+            configure_httpfs_headers_auth,
+            get_opens3_credentials,
+        )
 
         print("✅ Using OpenAthena S3 authentication middleware from relative path")
     except ImportError:
