@@ -5,7 +5,7 @@ import sys
 print("🦆 Setting up DuckDB connection...")
 
 # Create a new connection
-conn = duckdb.connect(database=':memory:')
+conn = duckdb.connect(database=":memory:")
 
 # Configure S3 credentials if provided
 if len(sys.argv) >= 3:
@@ -23,9 +23,11 @@ if len(sys.argv) >= 3:
 try:
     print("Testing local file access...")
     # Build the path
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'test_data', 'local_test.csv')
+    csv_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "test_data", "local_test.csv"
+    )
     # Escape single quotes and backslashes for SQL
-    safe_path = csv_path.replace("'", "''").replace('\\', '\\\\')
+    safe_path = csv_path.replace("'", "''").replace("\\", "\\\\")
     # Use the safe path in the SQL query
     sql = f"SELECT * FROM read_csv_auto('{safe_path}')"
     result = conn.sql(sql).fetchdf()
@@ -38,9 +40,11 @@ except Exception as e:
 if len(sys.argv) >= 3:
     try:
         print("Testing S3 configuration...")
-        config_result = conn.sql("SELECT current_setting('s3_access_key_id') as access_key").fetchdf()
+        config_result = conn.sql(
+            "SELECT current_setting('s3_access_key_id') as access_key"
+        ).fetchdf()
         print(f"✅ S3 configuration verified: {config_result['access_key'][0][:4]}***")
-        
+
         # Try listing a bucket if specified
         if len(sys.argv) >= 4:
             bucket = sys.argv[3]

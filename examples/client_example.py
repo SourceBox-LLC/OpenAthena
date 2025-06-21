@@ -13,7 +13,7 @@ def main():
     # Create an OpenAthena client
     print("Connecting to OpenAthena API...")
     client = OpenAthenaClient("http://localhost:8000")
-    
+
     # Check API health
     try:
         health = client.health_check()
@@ -22,7 +22,7 @@ def main():
         print(f"API health check failed: {e}")
         print("Make sure the OpenAthena API server is running.")
         return
-    
+
     # List available tables
     print("\nListing available tables...")
     try:
@@ -30,7 +30,7 @@ def main():
         print(f"Available tables: {tables}")
     except Exception as e:
         print(f"Error listing tables: {e}")
-    
+
     # Run a query and get results as a pandas DataFrame
     print("\nRunning query...")
     try:
@@ -42,16 +42,16 @@ def main():
         df = client.execute_query(query)
         print("\nQuery results (DataFrame):")
         print(df)
-        
+
         # Example: Calculate some statistics
-        if not df.empty and 'total' in df.columns:
+        if not df.empty and "total" in df.columns:
             print("\nStatistics for 'total' column:")
             print(f"Mean: {df['total'].mean()}")
             print(f"Min: {df['total'].min()}")
             print(f"Max: {df['total'].max()}")
     except Exception as e:
         print(f"Error running query: {e}")
-    
+
     # Run a different query with CSV output
     print("\nRunning query with CSV output...")
     try:
@@ -69,7 +69,7 @@ def main():
         print(csv_data)
     except Exception as e:
         print(f"Error running query with CSV output: {e}")
-    
+
     # Add a new table to the catalog
     print("\nAdding a new table to the catalog...")
     try:
@@ -77,12 +77,12 @@ def main():
             table_name="customer_orders",
             bucket="data",
             prefix="orders/",
-            file_format="parquet"
+            file_format="parquet",
         )
         print(f"Add table result: {result}")
     except Exception as e:
         print(f"Error adding table: {e}")
-    
+
     # Reload the catalog
     print("\nReloading the catalog...")
     try:
@@ -90,7 +90,7 @@ def main():
         print(f"Reload catalog result: {result}")
     except Exception as e:
         print(f"Error reloading catalog: {e}")
-    
+
     print("\nDone!")
 
 
