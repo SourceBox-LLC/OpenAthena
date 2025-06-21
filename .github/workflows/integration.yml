@@ -2,29 +2,16 @@ name: Integration Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
   integration-test:
     runs-on: ubuntu-latest
     
-    services:
-      # Run OpenS3 as a service container
-      opens3:
-        image: sourcebox/opens3:latest  # Replace with actual image when available
-        ports:
-          - 8001:8001
-        env:
-          OPENS3_ACCESS_KEY: admin
-          OPENS3_SECRET_KEY: password
-        options: >-
-          --health-cmd "curl -f http://localhost:8001/ || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # No service containers needed when using dummy tables
     
     steps:
       - uses: actions/checkout@v4
@@ -41,52 +28,57 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
       
-      - name: Set up OpenS3 integration environment
+      - name: Create test catalog with dummy tables
         run: |
-          export S3_ENDPOINT="http://localhost:8001"
-          export OPENS3_ACCESS_KEY="admin"
-          export OPENS3_SECRET_KEY="password"
+          cat > test_catalog.yml << EOF
+          test_table:
+            type: "dummy"
           
-          # Create test bucket and upload test data
-          python -c "
-          import requests
-          import json
-
-          # Create test buckets
-          headers = {'Content-Type': 'application/json'}
+          test_analytics:
+            type: "dummy"
+            columns:
+              - name: "id"
+                type: "INTEGER"
+              - name: "value"
+                type: "DOUBLE"
+              - name: "category"
+                type: "VARCHAR"
+              - name: "date"
+                type: "DATE"
+            rows:
+              - [1, 100.5, "A", "2025-01-01"]
+              - [2, 200.3, "B", "2025-01-02"]
+              - [3, 300.7, "C", "2025-01-03"]
           
-          # Create world-pop bucket
-          response = requests.post(
-              'http://localhost:8001/buckets',
-              headers=headers,
-              json={'name': 'world-pop'},
-              auth=('admin', 'password')
-          )
-          print(f'Create world-pop bucket: {response.status_code}')
+          world_population:
+            type: "dummy"
+            columns:
+              - name: "country"
+                type: "VARCHAR"
+              - name: "population"
+                type: "BIGINT"
+              - name: "year"
+                type: "INTEGER"
+            rows:
+              - ["USA", 331900000, 2025]
+              - ["China", 1410000000, 2025]
+              - ["India", 1390000000, 2025]
+          EOF
           
-          # Create test-analytics bucket
-          response = requests.post(
-              'http://localhost:8001/buckets',
-              headers=headers,
-              json={'name': 'test-analytics'},
-              auth=('admin', 'password')
-          )
-          print(f'Create test-analytics bucket: {response.status_code}')
-          "
+          echo "Created test_catalog.yml with dummy tables"
           
       - name: Run Integration Tests
         run: |
-          # Set necessary environment variables
-          export S3_ENDPOINT="http://localhost:8001"
-          export OPENS3_ACCESS_KEY="admin"
-          export OPENS3_SECRET_KEY="password"
+          # Set necessary environment variables for using dummy tables
+          export OPENATHENA_USE_DUMMY_DATA=true
+          export OPENATHENA_CATALOG_PATH="./test_catalog.yml"
           
           # Start OpenAthena server for testing
           python -m open_athena.main &
           sleep 5  # Give time for server to start
           
           # Run integration tests
-          pytest tests/integration/
+          pytest tests/integration/ -v
           
       - name: Collect and upload test artifacts
         if: always()
