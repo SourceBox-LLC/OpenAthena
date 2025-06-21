@@ -75,7 +75,7 @@ def load_catalog(con, cat_path: str = "catalog.yml") -> None:
                 logger.error(f"❌ Error creating view for table '{tbl}': {e}")
                 print(f"❌ Error creating view for table '{tbl}': {e}")
                 # Create a dummy view with error information as fallback
-                con.sql(f"CREATE OR REPLACE VIEW {safe_tbl} AS SELECT 1 as id, 'Error: {str(e).replace("'", "''")}' as error_message WHERE 1=0;")
+                con.sql(f"CREATE OR REPLACE VIEW {safe_tbl} AS SELECT 1 as id, 'Error: {str(e).replace("'", "''")}'  as error_message WHERE 1=0;")
             continue
             
         # Regular S3 table setup (legacy method)
