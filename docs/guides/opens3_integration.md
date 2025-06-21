@@ -9,7 +9,7 @@ OpenAthena and OpenS3 are designed to work seamlessly together:
 - **OpenS3** serves as your data lake storage system
 - **OpenAthena** provides SQL analytics capabilities on that data
 
-The current integration uses a Local File Proxy that downloads files from OpenS3 to a temporary directory before querying. This approach bridges compatibility gaps between DuckDB 1.2.2 and OpenS3's API. See the [Local File Proxy documentation](../local_file_proxy.md) for details.
+The current integration uses a Local File Proxy that downloads files from OpenS3 to a temporary directory before querying. This approach bridges compatibility gaps between DuckDB 1.2.2 and OpenS3's API.
 
 ## Prerequisites
 
@@ -25,12 +25,9 @@ The current integration uses a Local File Proxy that downloads files from OpenS3
 When running both OpenAthena and OpenS3 locally, be aware of potential port conflicts:
 
 - **OpenAthena** defaults to port 8000
-- **OpenS3** also defaults to port 8000
+- **OpenS3** typically runs on port 8001 (to avoid conflicts)
 
-To avoid port conflicts, consider:
-
-1. Running OpenS3 on port 8001 (or another port)
-2. Running OpenAthena on port 8000 (default)
+To run both services without conflicts:
 
 ```bash
 # Start OpenS3 on port 8001
@@ -45,14 +42,19 @@ python -m open_athena.main
 Set the following environment variables to allow OpenAthena to authenticate with OpenS3:
 
 ```bash
+# Windows CMD
+set OPENS3_ACCESS_KEY=admin
+set OPENS3_SECRET_KEY=password
+set S3_ENDPOINT=http://localhost:8001
+
 # Windows PowerShell
-$env:OPENS3_ACCESS_KEY = "your-access-key"  # Default is often "admin"
-$env:OPENS3_SECRET_KEY = "your-secret-key"  # Default is often "password"
-$env:S3_ENDPOINT = "http://localhost:8001"  # Note the port changed to 8001
+$env:OPENS3_ACCESS_KEY = "admin"
+$env:OPENS3_SECRET_KEY = "password"
+$env:S3_ENDPOINT = "http://localhost:8001"
 
 # Linux/macOS
-export OPENS3_ACCESS_KEY="your-access-key"
-export OPENS3_SECRET_KEY="your-secret-key"
+export OPENS3_ACCESS_KEY="admin"
+export OPENS3_SECRET_KEY="password"
 export S3_ENDPOINT="http://localhost:8001"
 ```
 
@@ -60,7 +62,7 @@ export S3_ENDPOINT="http://localhost:8001"
 - Use `OPENS3_ACCESS_KEY` and `OPENS3_SECRET_KEY` for credentials (not AWS_* variables)
 - Use `S3_ENDPOINT` for the OpenS3 server URL
 - These variables must be set before starting the OpenAthena server
-- A startup script (`start-openathena.ps1`) is provided to set these variables automatically
+- When using Docker, use `host.docker.internal:8001` instead of `localhost:8001`
 
 ### 2. Create a Catalog File
 
@@ -76,14 +78,37 @@ world_pop_csv_meta:
 
 # Method 2: Using direct S3 path with wildcard (processed by proxy)
 world_pop_csv:
-  query: "SELECT * FROM read_csv_auto('s3://world-pop/*.csv');"
+  query: >-
+    SELECT * FROM read_csv_auto('s3://world-pop/*.csv')
 
 # Method 3: Using direct HTTP URL to specific file (processed by proxy)
 world_pop_csv_http:
-  query: "SELECT * FROM read_csv_auto('http://admin:password@localhost:8001/buckets/world-pop/objects/WorldPopulation2023.csv');"
+  query: >-
+    SELECT * FROM read_csv_auto('http://localhost:8001/buckets/world-pop/objects/WorldPopulation2023.csv')
 ```
 
-> **Note**: The Local File Proxy will automatically convert S3 and HTTP paths to local file paths during catalog loading.
+> **Note**: The Local File Proxy will automatically convert S3 and HTTP paths to local file paths during catalog loading and handle path escaping as needed.
+
+### Windows Path Handling
+
+When running OpenAthena on Windows with usernames containing apostrophes (e.g., `S'Bussiso`), special SQL escaping is required. The Local File Proxy handles this automatically, but if you're writing custom queries, follow these rules:
+
+1. Double any apostrophes in paths: `S'Bussiso` becomes `S''Bussiso`
+2. Double any backslashes in Windows paths: `\` becomes `\\`
+
+Example of proper Windows path escaping in catalog.yml:
+
+```yaml
+custom_csv_query:
+  query: >-
+    SELECT * FROM read_csv_auto('C:\\Users\\S''Bussiso\\Desktop\\data.csv')
+```
+
+If writing queries directly in SQL:
+
+```sql
+SELECT * FROM read_csv_auto('C:\\Users\\S''Bussiso\\Desktop\\data.csv');
+```
 
 ### 3. Start OpenAthena
 
@@ -103,6 +128,41 @@ Or manually with environment variables:
 # Set environment variables first
 python -m open_athena.main
 ```
+
+## Troubleshooting OpenS3 Integration
+
+### Common Issues
+
+#### Empty Query Results
+
+**Symptoms**: Querying OpenS3-backed tables returns no data or empty results.
+
+**Solutions**:
+- Verify OpenS3 is running and accessible via `curl http://localhost:8001/`
+- Check environment variables are set correctly (`S3_ENDPOINT`, `OPENS3_ACCESS_KEY`, `OPENS3_SECRET_KEY`)
+- Ensure the buckets and files specified in your catalog actually exist in OpenS3
+- Enable proxy debugging with `export DEBUG_PROXY=true`
+- Check OpenAthena logs for credential or endpoint errors
+
+#### SQL Syntax Errors with Windows Paths
+
+**Symptoms**: SQL queries fail with syntax errors when paths contain apostrophes.
+
+**Solutions**:
+- Ensure apostrophes in paths are doubled in SQL: `'C:\Users\S''Bussiso\data.csv'`
+- Make sure backslashes are doubled in Windows paths: `C:\\Users\\...`
+- Use the Local File Proxy which handles this escaping automatically
+- Verify catalog entries use the correct function names (`read_parquet` not `read_parquet_auto`)
+
+#### Wildcard Patterns Not Matching Files
+
+**Symptoms**: Wildcard patterns like `*.csv` don't return all expected files.
+
+**Solutions**:
+- Check if files are at the bucket root vs. in subdirectories
+- Verify the wildcards are correctly formatted (e.g., `s3://bucket/*.csv`)
+- Enable proxy debugging to see what files are being matched
+- Ensure file extensions match exactly (case-sensitive)
 
 ## Testing the Integration
 

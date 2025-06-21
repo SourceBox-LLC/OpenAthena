@@ -1,6 +1,6 @@
 # OpenAthena Catalog Configuration
 
-The catalog is a central component of OpenAthena that defines the tables and data sources available for querying. This guide explains how to configure and manage your OpenAthena catalog.
+The catalog is a central component of OpenAthena that defines the tables and data sources available for querying. This guide explains how to configure and manage your OpenAthena catalog for both local files and OpenS3 data sources.
 
 ## Catalog Basics
 
@@ -62,16 +62,34 @@ opens3_wildcard_parquet:
     SELECT * FROM read_parquet('s3://my-bucket/*.parquet')
 ```
 
+### 4. Windows Path Handling
+
+When running OpenAthena on Windows with usernames containing apostrophes (e.g., `S'Bussiso`), special SQL escaping is required:
+
+```yaml
+# Windows paths with apostrophes must be properly escaped
+windows_path_example:
+  query: >-
+    SELECT * FROM read_csv_auto('C:\\Users\\S''Bussiso\\Desktop\\data.csv')
+```
+
+**Important rules for Windows paths:**
+- Double any apostrophes: `S'Bussiso` becomes `S''Bussiso`
+- Double any backslashes: `\` becomes `\\`
+
 ## Supported Data Formats
 
 OpenAthena supports the following data formats through DuckDB:
 
 - **Parquet**: Optimized columnar format (recommended for performance)
-  - Use `read_parquet()` function in queries, NOT `read_parquet_auto()`
+  - Use `read_parquet()` function in queries, NOT `read_parquet_auto()` 
+  - Example: `SELECT * FROM read_parquet('s3://bucket/*.parquet')`
 - **CSV**: Comma-separated values
   - Use `read_csv_auto()` for automatic schema detection
+  - Example: `SELECT * FROM read_csv_auto('s3://bucket/*.csv')`
 - **JSON**: JavaScript Object Notation
   - Use `read_json_auto()` for automatic schema detection
+  - Example: `SELECT * FROM read_json_auto('s3://bucket/*.json')`
 - **ORC**: Optimized Row Columnar format
 - **Avro**: Apache Avro format
 - **Dummy**: Special format for testing without OpenS3
@@ -102,13 +120,34 @@ SELECT 3 as id, 'test3' as name, 300.0 as value
 
 To use dummy tables, set the environment variable `OPENATHENA_USE_DUMMY_DATA=true` when starting OpenAthena.
 
-## Catalog File Location
+## Catalog Management
 
-By default, OpenAthena looks for a file named `catalog.yml` in the current directory. You can specify a different location using the `OPENATHENA_CATALOG_PATH` environment variable:
+### Loading the Catalog
+
+OpenAthena loads the catalog from a YAML file specified by the environment variable `OPENATHENA_CATALOG_PATH`. If not provided, it searches for `catalog.yml` in the current working directory.
 
 ```bash
-export OPENATHENA_CATALOG_PATH=/path/to/your/catalog.yml
+# Set custom catalog path (Linux/macOS)
+export OPENATHENA_CATALOG_PATH=/path/to/your/custom-catalog.yml
+
+# Set custom catalog path (Windows CMD)
+set OPENATHENA_CATALOG_PATH=C:\path\to\custom-catalog.yml
+
+# Set custom catalog path (Windows PowerShell)
+$env:OPENATHENA_CATALOG_PATH = "C:\path\to\custom-catalog.yml"
 ```
+
+### Auto-Discovery of OpenS3 Buckets
+
+When OpenAthena starts or when the catalog is reloaded, it automatically discovers buckets and files in OpenS3 to generate catalog entries. This requires:
+
+1. OpenS3 server running and accessible
+2. Proper environment variables set (`S3_ENDPOINT`, `OPENS3_ACCESS_KEY`, `OPENS3_SECRET_KEY`)
+
+The auto-discovery process:
+- Scans all buckets in OpenS3
+- Identifies file types (CSV, Parquet, etc.)
+- Creates catalog entries for each data source found
 
 ## Advanced Catalog Configuration
 
