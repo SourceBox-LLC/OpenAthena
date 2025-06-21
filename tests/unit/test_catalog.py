@@ -3,11 +3,12 @@ Unit tests for OpenAthena catalog functionality.
 """
 
 import os
-import pytest
-import yaml
 from pathlib import Path
 
-from open_athena.catalog import load_catalog, get_catalog_tables
+import pytest
+import yaml
+
+from open_athena.catalog import get_catalog_tables, load_catalog
 
 
 def test_load_catalog_with_dummy_tables(db_connection, temp_catalog):

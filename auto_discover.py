@@ -9,18 +9,19 @@ It provides both S3 protocol and HTTP direct access methods for each object
 and attempts to reload the OpenAthena catalog after updating.
 """
 
-import os
-import sys
-import yaml
-import requests
-import tempfile
 import csv
 import io
+import os
+import sys
+import tempfile
 import time
 import urllib.parse
-from requests.auth import HTTPBasicAuth
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import requests
+import yaml
+from requests.auth import HTTPBasicAuth
 
 # Try to import DuckDB, but continue if it's not available
 try:

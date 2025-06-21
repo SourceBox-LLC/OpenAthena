@@ -4,10 +4,11 @@ Simple runner script for OpenAthena health checks.
 Can be used in monitoring systems, CI/CD pipelines, or as a Docker HEALTHCHECK.
 """
 
+import argparse
 import os
 import sys
-import argparse
 import time
+
 from healthcheck import OpenAthenaHealthChecker
 
 

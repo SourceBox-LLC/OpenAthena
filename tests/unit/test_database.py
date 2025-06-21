@@ -3,8 +3,9 @@ Unit tests for OpenAthena database functionality.
 """
 
 import os
-import pytest
+
 import duckdb
+import pytest
 
 from open_athena.database import DuckDBManager
 

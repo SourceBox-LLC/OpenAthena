@@ -5,14 +5,15 @@ This module provides functions to check the health and status of an OpenAthena i
 Can be run as a standalone script or imported into other modules.
 """
 
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
-import requests
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
 
 # Add the project root to the path so we can import modules when running as script
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))

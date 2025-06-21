@@ -2,10 +2,11 @@
 Integration tests for OpenAthena API endpoints.
 """
 
-import os
 import json
-import pytest
+import os
 import tempfile
+
+import pytest
 from fastapi.testclient import TestClient
 
 from open_athena.api import app

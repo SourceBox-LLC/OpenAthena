@@ -6,10 +6,11 @@ This file contains fixtures and configuration for tests.
 
 import os
 import sys
-import pytest
 import tempfile
-import yaml
 from pathlib import Path
+
+import pytest
+import yaml
 
 # Add the project root to the path so we can import modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -47,6 +48,7 @@ def db_connection():
 def test_client():
     """Create a FastAPI test client."""
     from fastapi.testclient import TestClient
+
     from open_athena.api import app
 
     # Set environment variables for testing

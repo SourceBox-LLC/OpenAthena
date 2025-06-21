@@ -7,6 +7,7 @@ and can communicate with OpenS3 via presigned URLs or direct S3 access.
 
 import os
 import sys
+
 import duckdb
 
 

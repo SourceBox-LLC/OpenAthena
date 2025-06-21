@@ -1,10 +1,11 @@
+import getpass
 import os
 import sys
-from setuptools import setup, find_packages
+from pathlib import Path
+
+from setuptools import find_packages, setup
 from setuptools.command.develop import develop
 from setuptools.command.install import install
-from pathlib import Path
-import getpass
 
 # Read the long description from README
 with open("README.md", "r", encoding="utf-8") as fh:

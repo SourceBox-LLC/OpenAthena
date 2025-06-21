@@ -8,16 +8,17 @@ It downloads files from OpenS3 to a local cache directory and provides utilities
 to convert OpenS3 URLs to local file paths.
 """
 
+import json
+import logging
 import os
+import shutil
 import tempfile
 import time
-import logging
-import requests
-import shutil
-from urllib.parse import urlparse
 from pathlib import Path
-import json
 from typing import Dict, List, Optional, Tuple, Union
+from urllib.parse import urlparse
+
+import requests
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

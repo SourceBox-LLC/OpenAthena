@@ -4,12 +4,13 @@ Catalog module for OpenAthena.
 This module provides functionality to manage data sources using a YAML-based catalog.
 """
 
-import os
-import yaml
-from pathlib import Path
-import tempfile
-from typing import Dict, Any, Optional
 import logging
+import os
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import yaml
 
 # Import the OpenS3 file proxy
 from open_athena.opens3_file_proxy import get_proxy_instance, initialize_proxy

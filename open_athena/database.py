@@ -6,9 +6,10 @@ the database connection to work with OpenS3.
 """
 
 import os
-import duckdb
 from pathlib import Path
-from typing import Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
+
+import duckdb
 
 from open_athena.catalog import load_catalog
 

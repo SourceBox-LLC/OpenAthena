@@ -5,11 +5,11 @@ This module handles loading configuration from environment variables and config 
 """
 
 import os
-import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
-from dotenv import load_dotenv
+from typing import Any, Dict, Optional
 
+import yaml
+from dotenv import load_dotenv
 
 # Load environment variables from .env file if it exists
 load_dotenv()

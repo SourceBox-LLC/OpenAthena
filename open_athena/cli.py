@@ -4,15 +4,16 @@ Command-line interface for OpenAthena.
 This module provides a CLI for executing queries against OpenAthena.
 """
 
-import os
-import sys
 import argparse
 import json
-import pandas as pd
-from typing import Optional, Dict, Any
+import os
+import sys
+from typing import Any, Dict, Optional
 
-from open_athena.client import OpenAthenaClient
+import pandas as pd
+
 from open_athena import __version__
+from open_athena.client import OpenAthenaClient
 
 
 def parse_args():

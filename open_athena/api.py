@@ -5,21 +5,20 @@ This module provides a FastAPI-based REST API for executing SQL queries against
 the DuckDB database and managing the catalog.
 """
 
-import os
 import io
 import json
+import os
 import sys
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import pyarrow as pa
-from fastapi import FastAPI, Request, Response, HTTPException, Depends
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
 
-from open_athena.database import DuckDBManager
-from open_athena.catalog import get_catalog_tables, create_catalog_table
 from open_athena import __version__
-
+from open_athena.catalog import create_catalog_table, get_catalog_tables
+from open_athena.database import DuckDBManager
 
 # Initialize FastAPI app
 app = FastAPI(

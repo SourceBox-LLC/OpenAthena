@@ -1,6 +1,7 @@
-import requests
 import json
 import os
+
+import requests
 
 # OpenS3 connection details (same as in our proxy)
 OPENS3_URL = "http://localhost:8001"

@@ -6,10 +6,11 @@ This module provides middleware for DuckDB's httpfs extension to authenticate
 with OpenS3 using HTTP headers instead of embedded credentials in URLs.
 """
 
-import os
 import base64
-import duckdb
+import os
 from typing import Optional
+
+import duckdb
 
 
 def configure_httpfs_headers_auth(

@@ -2,10 +2,11 @@
 Test script to verify the catalog fix for handling apostrophes in file paths
 """
 
-import os
 import logging
-from open_athena.database import DuckDBManager
+import os
+
 from open_athena.catalog import load_catalog
+from open_athena.database import DuckDBManager
 from open_athena.opens3_file_proxy import get_proxy_instance
 
 # Set up logging

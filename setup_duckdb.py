@@ -1,6 +1,7 @@
 import os
-import duckdb
 import sys
+
+import duckdb
 
 print("🦆 Setting up DuckDB connection...")
 

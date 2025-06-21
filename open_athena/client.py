@@ -6,10 +6,11 @@ This module provides a client for interacting with the OpenAthena API.
 
 import io
 import json
-import requests
-import pyarrow as pa
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
-from typing import Dict, List, Any, Optional, Union
+import pyarrow as pa
+import requests
 
 
 class OpenAthenaClient:

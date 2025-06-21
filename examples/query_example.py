@@ -6,7 +6,9 @@ against OpenS3 data.
 """
 
 import os
+
 import duckdb
+
 from open_athena.catalog import load_catalog
 
 

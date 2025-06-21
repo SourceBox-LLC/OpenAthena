@@ -4,16 +4,16 @@ Main entry point for OpenAthena.
 This module provides the main entry point for running OpenAthena as a standalone application.
 """
 
+import argparse
+import getpass
 import os
 import sys
-import argparse
 from pathlib import Path
-import getpass
-from typing import Dict, Any
+from typing import Any, Dict
 
+from open_athena import __version__
 from open_athena.api import app, get_db
 from open_athena.config import get_config
-from open_athena import __version__
 
 
 def parse_args():

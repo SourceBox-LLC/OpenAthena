@@ -9,9 +9,10 @@ and data access in OpenAthena tests.
 import os
 import tempfile
 import uuid
+from typing import Any, Dict, List, Optional, Tuple
+
 import requests
 from requests.auth import HTTPBasicAuth
-from typing import Tuple, List, Dict, Optional, Any
 
 
 def get_s3_credentials() -> Tuple[Optional[str], Optional[str], Optional[str]]:

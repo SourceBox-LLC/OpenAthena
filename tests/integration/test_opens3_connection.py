@@ -8,17 +8,15 @@ configurations.
 """
 
 import os
-import duckdb
-import pytest
 import tempfile
 import uuid
-from tests.utils.s3_helpers import (
-    get_s3_credentials,
-    list_buckets as list_s3_buckets,
-    find_csv_in_bucket,
-    download_file,
-    cleanup_temp_file,
-)
+
+import duckdb
+import pytest
+
+from tests.utils.s3_helpers import (cleanup_temp_file, download_file,
+                                    find_csv_in_bucket, get_s3_credentials)
+from tests.utils.s3_helpers import list_buckets as list_s3_buckets
 
 
 @pytest.mark.skipif(

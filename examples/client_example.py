@@ -5,6 +5,7 @@ This script demonstrates how to connect to OpenAthena API and run queries.
 """
 
 import pandas as pd
+
 from open_athena.client import OpenAthenaClient
 
 
