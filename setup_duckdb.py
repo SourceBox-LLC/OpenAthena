@@ -1,33 +1,54 @@
-﻿#!/usr/bin/env python3
-import duckdb
 import os
+import duckdb
+import sys
 
-print("Configuring DuckDB for OpenS3 access...")
+print("🦆 Setting up DuckDB connection...")
 
-# Create connection
-conn = duckdb.connect(':memory:')
+# Create a new connection
+conn = duckdb.connect(database=':memory:')
 
-# Install and load httpfs extension
-conn.sql("INSTALL httpfs")
-conn.sql("LOAD httpfs")
-
-# Set S3 configuration
-conn.sql("SET s3_region='us-east-1'")
-conn.sql("SET s3_access_key_id='admin'")
-conn.sql("SET s3_secret_access_key='password'")
-conn.sql("SET s3_endpoint='localhost:8001'")
-conn.sql("SET s3_url_style='path'")
-conn.sql("SET s3_use_ssl=false")
-
-print("âœ… DuckDB configured for OpenS3 access")
+# Configure S3 credentials if provided
+if len(sys.argv) >= 3:
+    s3_access_key = sys.argv[1]
+    s3_secret_key = sys.argv[2]
+    print(f"⚙️ Configuring S3 with provided credentials...")
+    conn.execute("SET s3_region='us-east-1'")
+    conn.execute(f"SET s3_access_key_id='{s3_access_key}'")
+    conn.execute(f"SET s3_secret_access_key='{s3_secret_key}'")
+    conn.execute("SET s3_url_style='path'")
+    conn.execute("SET s3_use_ssl=true")
+    conn.execute("SET s3_allow_errors=true")
 
 # Test connection
 try:
     print("Testing local file access...")
-    result = conn.sql(f"SELECT * FROM read_csv_auto('{os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'test_data', 'local_test.csv').replace("'", "''").replace('\\\\', '\\\\\\\\')}')").fetchdf()
-    print(f"âœ… Local file access successful, found {len(result)} rows")
+    # Build the path
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'test_data', 'local_test.csv')
+    # Escape single quotes and backslashes for SQL
+    safe_path = csv_path.replace("'", "''").replace('\\', '\\\\')
+    # Use the safe path in the SQL query
+    sql = f"SELECT * FROM read_csv_auto('{safe_path}')"
+    result = conn.sql(sql).fetchdf()
+    print(f"✅ Local file access successful, found {len(result)} rows")
     print(result)
 except Exception as e:
-    print(f"âŒ Local file access failed: {e}")
+    print(f"❌ Error with local file access: {e}")
 
-print("Setup complete")
+# Test S3 access if credentials were provided
+if len(sys.argv) >= 3:
+    try:
+        print("Testing S3 configuration...")
+        config_result = conn.sql("SELECT current_setting('s3_access_key_id') as access_key").fetchdf()
+        print(f"✅ S3 configuration verified: {config_result['access_key'][0][:4]}***")
+        
+        # Try listing a bucket if specified
+        if len(sys.argv) >= 4:
+            bucket = sys.argv[3]
+            try:
+                print(f"Testing S3 bucket access for '{bucket}'...")
+                conn.sql(f"SELECT * FROM s3_list('{bucket}')").fetchdf()
+                print(f"✅ S3 bucket '{bucket}' access successful")
+            except Exception as e:
+                print(f"❌ Error accessing S3 bucket '{bucket}': {e}")
+    except Exception as e:
+        print(f"❌ Error with S3 configuration: {e}")
