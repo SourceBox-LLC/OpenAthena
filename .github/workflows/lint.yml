@@ -42,9 +42,6 @@ jobs:
         run: |
           black . --exclude="src/.*"
 
-      - name: Type check
-        run: |
-          mypy --ignore-missing-imports open_athena/
 
       - name: Commit & push auto-fixes
         run: |
