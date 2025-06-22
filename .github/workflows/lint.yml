@@ -44,11 +44,18 @@ jobs:
       - name: Commit formatting changes if needed
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
+          # Remove accidental git repository if it exists
+          if [ -d "src/open-athena/.git" ]; then
+            rm -rf src/open-athena/.git
+          fi
+          
           if [[ -n $(git status --porcelain) ]]; then
             git config --global user.name "GitHub Actions"
             git config --global user.email "actions@github.com"
             git add .
             git commit -m "Auto-format code with Black and isort"
+            # Use token for authentication
+            git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
             git push
           fi
           
