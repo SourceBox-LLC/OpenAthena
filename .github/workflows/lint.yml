@@ -1,10 +1,7 @@
 name: Lint & Auto-fix
-
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  push:     { branches: [master] }
+  pull_request: { branches: [master] }
   workflow_dispatch:
 
 jobs:
@@ -15,8 +12,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0           # needed for push
+          fetch-depth: 0
           persist-credentials: true
+          submodules: recursive      # only if you kept the real submodule
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -27,26 +25,36 @@ jobs:
       - name: Install linters + autofixer
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 black isort mypy autoflake
+          pip install autoflake isort black mypy
           pip install -r requirements.txt
 
-      - name: Auto-remove unused imports & variables
+      - name: Auto-remove unused imports & vars
         run: |
-          autoflake --in-place --remove-all-unused-imports --remove-unused-variables --recursive .
+          # if you kept submodule, exclude it
+          autoflake \
+            --in-place \
+            --remove-all-unused-imports \
+            --remove-unused-variables \
+            --recursive \
+            ${GITHUB_WORKSPACE} \
+            --exclude src/open-athena
 
       - name: Sort imports
         run: |
-          isort .
+          isort . --skip src/open-athena
 
       - name: Reformat with Black
         run: |
-          black . --exclude="src/.*"
+          black . --exclude "src/open-athena|src/.*"
 
+      - name: Type check
+        run: |
+          mypy --ignore-missing-imports open_athena/
 
       - name: Commit & push auto-fixes
         run: |
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git diff-index --quiet HEAD || git commit -m "chore: apply auto-fix linting"
-          git push
+          git push origin HEAD:master
