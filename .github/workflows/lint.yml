@@ -35,11 +35,13 @@ jobs:
           
       - name: Auto-format with black
         run: |
-          black .
+          # Exclude src directory to prevent duplication issues
+          black --exclude="src/.*" .
           
       - name: Auto-sort imports with isort
         run: |
-          isort .
+          # Exclude src directory to prevent duplication issues
+          isort --skip src .
           
       - name: Commit formatting changes if needed
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
